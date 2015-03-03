@@ -1,0 +1,24 @@
+--- docker-entrypoint.sh	2015-02-02 09:59:28.145834092 +0100
++++ new_docker-entrypoint.sh	2015-02-02 10:00:12.169832251 +0100
+@@ -8,6 +8,9 @@
+ 		gosu postgres initdb
+ 		
+ 		sed -ri "s/^#(listen_addresses\s*=\s*)\S+/\1'*'/" "$PGDATA"/postgresql.conf
++
++                # Set max_prepared_transactions to 100 cf http://documentation.bonitasoft.com/database-configuration-1#postgresqlspec
++                sed -i 's/^.*max_prepared_transactions\s*=\s*\(.*\)$/max_prepared_transactions = 100/' "$PGDATA"/postgresql.conf
+ 		
+ 		# check password first so we can ouptut the warning before postgres
+ 		# messes it up
+@@ -42,9 +45,10 @@
+ 		gosu postgres postgres --single -jE <<-EOSQL
+ 			$op USER "$POSTGRES_USER" WITH SUPERUSER $pass ;
+ 		EOSQL
++		# Modify config to accept remote connections from all users
+ 		echo
+ 		
+-		{ echo; echo "host all \"$POSTGRES_USER\" 0.0.0.0/0 $authMethod"; } >> "$PGDATA"/pg_hba.conf
++		{ echo; echo "host all all 0.0.0.0/0 md5"; } >> "$PGDATA"/pg_hba.conf
+ 		
+ 		if [ -d /docker-entrypoint-initdb.d ]; then
+ 			for f in /docker-entrypoint-initdb.d/*.sh; do
